@@ -88,7 +88,7 @@ Thesis_Artefact_Package/
 
 The main runnable pipeline is:
 
-**Input video → Core-8 YOLO Pose → pose-derived temporal features → frozen XGBoost behaviour classifier → annotated video + CSV outputs**
+**Input video → hamster detection + Core-8 pose estimation → cleaned frame-level landmarks → pose-derived temporal features → frozen XGBoost behaviour classifier → annotated video + CSV outputs**
 
 Behaviour classes:
 
@@ -104,6 +104,57 @@ The demonstration may also display:
 - `Unclassified`
 
 The hamster-presence and model-score thresholds used in the demonstration are post-processing choices and were **not** used in the reported held-out Test evaluation.
+
+### Core-8 model configuration
+
+The primary pipeline combines a YOLO pose-estimation model with a pose-derived XGBoost behaviour classifier.
+
+**Pose model**
+
+| Parameter | Configuration |
+|---|---|
+| Base model | `yolo26n-pose.pt` |
+| Landmarks | 8 |
+| Training frames | 143 Train / 28 Validation / 29 Test |
+| Epochs | 80 |
+| Early-stopping patience | 20 |
+| Image size | 640 |
+| Initial learning rate | 0.001 |
+| Mosaic augmentation | 0.5 |
+| Mixup | 0.0 |
+| Batch size | Automatic |
+| Random seed | 42 |
+| Deterministic training | Enabled |
+| Training device | Apple MPS |
+
+The eight landmarks are: **nose, left eye, right eye, left ear, right ear, neck/shoulder, spine midpoint, and tail base**.
+
+During inference, the Core-8 YOLO Pose model detects the hamster in each frame and predicts the eight body landmarks. The resulting landmark coordinates and confidence scores form the frame-level pose representation used by the next stage of the pipeline. Low-confidence keypoints are treated as missing before temporal feature extraction, with short gaps interpolated where applicable.
+
+**Temporal feature extraction**
+
+Pose predictions are processed in overlapping **2-second windows with a 1-second stride**. Keypoints below **0.30 confidence** are treated as missing, short gaps of up to **5 frames** are linearly interpolated, and windows require a minimum **70% pose-detection rate** to be included in the model-ready dataset.
+
+Derived features describe body geometry, orientation, displacement, speed, directional movement and relative head position.
+
+**Behaviour classifier**
+
+| Parameter | Configuration |
+|---|---|
+| Model | XGBoost multi-class classifier |
+| Trees | 500 |
+| Maximum depth | 5 |
+| Learning rate | 0.05 |
+| Row subsampling | 0.85 |
+| Feature subsampling | 0.85 |
+| Objective | `multi:softprob` |
+| Evaluation metric | `mlogloss` |
+| Tree method | `hist` |
+| Class balancing | Balanced sample weights |
+| Missing values | Training-set median imputation |
+| Random seed | 42 |
+
+The frozen classifier predicts five behaviour classes: **Climbing, Foraging, Grooming, Rearing, and Wheel running**.
 
 ---
 
@@ -196,6 +247,14 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
+
+> **macOS note:** XGBoost requires the OpenMP runtime. If the artefact fails with an error mentioning `libomp.dylib`, install it with Homebrew:
+>
+> ```bash
+> brew install libomp
+> ```
+>
+> Then rerun the artefact command.
 
 ### Windows PowerShell
 
