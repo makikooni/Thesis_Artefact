@@ -197,13 +197,20 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-### Windows
+### Windows PowerShell
 
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+```
+
+If PowerShell blocks activation because script execution is disabled, the environment can still be activated after allowing scripts for the current PowerShell session:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
 ```
 
 If a suitable Python environment is already active, the dependencies can instead be installed directly with:
@@ -219,7 +226,7 @@ ultralytics
 opencv-python
 numpy
 pandas
-scikit-learn
+scikit-learn==1.7.2
 xgboost
 joblib
 torch
@@ -238,8 +245,7 @@ A device can also be specified manually with `--device`.
 From the package root:
 
 ```bash
-python scripts/predict_behaviour_video_core8.py \
-    --video sample_videos/sample_01.mp4
+python scripts/predict_behaviour_video_core8.py --video sample_videos/sample_01.mp4
 ```
 
 If `--video` is omitted, the script automatically attempts to use:
@@ -269,8 +275,7 @@ Typical Core-8 outputs are:
 Core-10 is included as an exploratory comparison model.
 
 ```bash
-python scripts/predict_behaviour_video_core10.py \
-    --video sample_videos/sample_01.mp4
+python scripts/predict_behaviour_video_core10.py --video sample_videos/sample_01.mp4
 ```
 
 New outputs are written to:
@@ -298,8 +303,7 @@ The non-pose system classifies behaviour from motion-derived features such as fr
 For the continuous-video demonstration, Core-8 YOLO Pose is used only as a practical hamster-presence gate.
 
 ```bash
-python scripts/predict_behaviour_video_nonpose_with_presence.py \
-    --video sample_videos/sample_01.mp4
+python scripts/predict_behaviour_video_nonpose_with_presence.py --video sample_videos/sample_01.mp4
 ```
 
 New outputs are written to:
